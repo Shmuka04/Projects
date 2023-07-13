@@ -1,0 +1,85 @@
+#include <AccelStepper.h>
+#include <IRremote.h>
+#include <Arduino.h>
+
+#define FULLSTEP 4
+#define STEP_PER_REVOLUTION 2048 
+
+#define IR_PIN A1
+IRrecv irrecv(IR_PIN);
+decode_results results;
+
+int xVal;
+int yVal;
+int minVal = -1000;
+int maxVal = 1000;
+
+AccelStepper stepperY(FULLSTEP, 2, 4, 3, 5);
+AccelStepper stepperX(FULLSTEP, 9, 11, 10, 12);
+
+void setup() {
+  Serial.begin(115200);
+
+  irrecv.enableIRIn();
+
+  stepperY.setMaxSpeed(1024);
+  stepperY.setAcceleration(1024.0);
+  stepperY.setCurrentPosition(0);
+  stepperY.moveTo(STEP_PER_REVOLUTION); 
+
+  stepperX.setMaxSpeed(1024);
+  stepperX.setAcceleration(1024.0);
+  stepperX.setCurrentPosition(0);
+  stepperX.moveTo(STEP_PER_REVOLUTION); 
+}
+
+void loop() {
+
+  if (irrecv.decode()) {
+    Serial.println(irrecv.decodedIRData.decodedRawData);
+    irrecv.resume();
+    }
+
+  if (stepperY.distanceToGo() == 0)
+    stepperY.moveTo(-stepperY.currentPosition());
+
+  stepperY.run();
+
+  if (stepperX.distanceToGo() == 0)
+    stepperX.moveTo(-stepperX.currentPosition());
+
+  stepperX.run();
+
+  if (irrecv.decodedIRData.decodedRawData == 3108437760){
+  xVal = maxVal;
+  yVal = minVal;
+  }
+  else if (irrecv.decodedIRData.decodedRawData == 3158572800){
+  xVal = minVal;
+  yVal = minVal; 
+  }
+  else if (irrecv.decodedIRData.decodedRawData == 3927310080){
+  xVal = minVal;
+  yVal = maxVal;
+  }
+    else if (irrecv.decodedIRData.decodedRawData == 3141861120){
+  xVal = maxVal;
+  yVal = maxVal; 
+  }
+    else if (irrecv.decodedIRData.decodedRawData == 3208707840){
+  xVal = 0;
+  yVal = 0; 
+  }
+  else if (irrecv.decodedIRData.decodedRawData == 0){
+  xVal = xVal;
+  yVal = yVal; 
+  }
+
+  stepperX.setSpeed(xVal);
+  stepperY.setSpeed(yVal);
+
+  Serial.print("x = ");
+  Serial.print(xVal);
+  Serial.print("    -   y = ");
+  Serial.println(yVal);
+}
